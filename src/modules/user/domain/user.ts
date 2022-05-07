@@ -5,6 +5,7 @@ import { Guard } from '@shared/core/Guard';
 import { LastOrFristName } from './last_or_frist_name';
 import { Mail } from './email';
 import { Password } from './password';
+import { AddNewUserDomainEvent } from './event/addNewUser.event';
 
 export interface IUserAggregation {
   frist_name: LastOrFristName;
@@ -17,7 +18,10 @@ export class UserAggregation extends AggregateRoot<IUserAggregation> {
     super(props, id);
   }
 
-  public static create(props: IUserAggregation): Result<UserAggregation> {
+  public static create(
+    props: IUserAggregation,
+    id?: UniqueEntityID,
+  ): Result<UserAggregation> {
     const guardagainstNullOrUndefinedProps = [
       { argument: props.frist_name, argumentName: 'firstName' },
       { argument: props.last_name, argumentName: 'lastName' },
@@ -31,6 +35,13 @@ export class UserAggregation extends AggregateRoot<IUserAggregation> {
       return Result.fail<UserAggregation>(guard.getValue());
     }
 
-    return Result.ok<UserAggregation>(new UserAggregation(props));
+    const idWasProvided = !!id;
+
+    const user = new UserAggregation(props, id);
+    if (!idWasProvided) {
+      user.addDomainEvent(new AddNewUserDomainEvent(user));
+    }
+
+    return Result.ok<UserAggregation>(user);
   }
 }
